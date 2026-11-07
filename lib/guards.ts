@@ -1,6 +1,7 @@
 import type { Agendamento, Cliente, Servico } from "@/types/agendamento";
 
 const STATUS_VALIDOS: readonly string[] = ["pendente", "concluido", "cancelado"];
+const FREQUENCIAS_VALIDAS: readonly string[] = ["semanal", "quinzenal", "mensal"];
 
 function ehObjeto(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
@@ -33,7 +34,11 @@ export function ehAgendamento(v: unknown): v is Agendamento {
     typeof v.servicoId === "string" &&
     typeof v.dataHora === "string" &&
     typeof v.status === "string" &&
-    STATUS_VALIDOS.includes(v.status)
+    STATUS_VALIDOS.includes(v.status) &&
+    (v.recorrente === undefined || typeof v.recorrente === "boolean") &&
+    (v.frequencia === undefined ||
+      (typeof v.frequencia === "string" && FREQUENCIAS_VALIDAS.includes(v.frequencia))) &&
+    (v.serieId === undefined || typeof v.serieId === "string")
   );
 }
 

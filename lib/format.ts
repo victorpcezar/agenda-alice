@@ -72,3 +72,9 @@ export function paraDataHoraISO(data: string, hora: string): string | null {
 
   return valido ? `${dm[3]}-${dm[2]}-${dm[1]}T${hm[1]}:${hm[2]}` : null;
 }
+
+export function formatarDataCurta(iso: string): string {
+  const data = new Date(iso);
+  if (Number.isNaN(data.getTime())) return iso;
+  return data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}

@@ -7,9 +7,12 @@ import { useAgenda } from "@/context/AgendaProvider";
 import {
   ehHoje, formatarDataHora, formatarMoeda, mascararData, mascararHora, paraDataHoraISO,
 } from "@/lib/format";
-import type { StatusAgendamento } from "@/types/agendamento";
 import {
-  Aba, Acoes, Botao, Campo, Descricao, Destaque, Filtros, Formulario, Info, ItemLista,
+  ehFrequencia, OCORRENCIAS_PADRAO, OPCOES_FREQUENCIA, OPCOES_OCORRENCIAS, ROTULOS_FREQUENCIA,
+} from "@/lib/recorrencia";
+import type { Frequencia, StatusAgendamento } from "@/types/agendamento";
+import {
+  Aba, Acoes, Botao, Campo, CampoCheck, Descricao, Destaque, Filtros, Formulario, Info, ItemLista,
   Input, Lista, Mensagem, Pagina, Painel, Select, Selo, Suave, Titulo, TituloPainel, Vazio,
 } from "@/styles/ui";
 
@@ -27,13 +30,17 @@ const FILTROS: ReadonlyArray<{ valor: Filtro; rotulo: string }> = [
 export default function AgendaPage() {
   const {
     hidratado, clientes, servicos, agendamentos,
-    agendar, atualizarStatus, removerAgendamento,
+    agendar, atualizarStatus, cancelarAPartirDe, removerAgendamento,
   } = useAgenda();
 
   const [clienteId, setClienteId] = useState("");
   const [servicoId, setServicoId] = useState("");
   const [data, setData] = useState("");
   const [hora, setHora] = useState("");
+  const [recorrente, setRecorrente] = useState(false);
+  const [frequencia, setFrequencia] = useState<Frequencia>("semanal");
+  const [ocorrencias, setOcorrencias] = useState(String(OCORRENCIAS_PADRAO));
+  const [aviso, setAviso] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<Filtro>("pendente");
   const [erro, setErro] = useState<string | null>(null);
 
@@ -68,12 +75,21 @@ export default function AgendaPage() {
     const dataHora = paraDataHoraISO(data, hora);
     if (!dataHora) return setErro("Informe uma data (DD/MM/AAAA) e uma hora (HH:MM) válidas.");
 
-    const resultado = agendar({ clienteId, servicoId, dataHora });
-    if (!resultado.ok) return setErro(resultado.erro);
+    const resultado = agendar(
+      { clienteId, servicoId, dataHora, ...(recorrente ? { recorrente: true, frequencia } : {}) },
+      recorrente ? Number(ocorrencias) : 1,
+    );
+    if (!resultado.ok) {
+      setAviso(null);
+      return setErro(resultado.erro);
+    }
 
     setData("");
     setHora("");
+    setRecorrente(false);
+    setOcorrencias(String(OCORRENCIAS_PADRAO));
     setErro(null);
+    setAviso(resultado.mensagem ?? null);
     setFiltro("pendente");
   };
 
@@ -136,10 +152,40 @@ export default function AgendaPage() {
                 maxLength={5}
               />
             </Campo>
-            <Botao type="submit">Agendar</Botao>
+            <CampoCheck>
+              <input type="checkbox" checked={recorrente} onChange={(e) => setRecorrente(e.target.checked)} />
+              Horário fixo (repetir)
+            </CampoCheck>
+            {recorrente && (
+              <>
+                <Campo>
+                  Frequência
+                  <Select
+                    value={frequencia}
+                    onChange={(e) => {
+                      if (ehFrequencia(e.target.value)) setFrequencia(e.target.value);
+                    }}
+                  >
+                    {OPCOES_FREQUENCIA.map(({ valor, rotulo }) => (
+                      <option key={valor} value={valor}>{rotulo}</option>
+                    ))}
+                  </Select>
+                </Campo>
+                <Campo>
+                  Quantidade de atendimentos
+                  <Select value={ocorrencias} onChange={(e) => setOcorrencias(e.target.value)}>
+                    {OPCOES_OCORRENCIAS.map((n) => (
+                      <option key={n} value={n}>{n} atendimentos</option>
+                    ))}
+                  </Select>
+                </Campo>
+              </>
+            )}
+            <Botao type="submit">{recorrente ? "Agendar série" : "Agendar"}</Botao>
           </Formulario>
         )}
         {erro && <Mensagem $tipo="erro" role="alert">{erro}</Mensagem>}
+        {aviso && <Mensagem $tipo="info" role="status">{aviso}</Mensagem>}
       </Painel>
 
       <Filtros role="group" aria-label="Filtrar por status">
@@ -165,6 +211,9 @@ export default function AgendaPage() {
                   <Suave>
                     {servico ? `${servico.duracaoMinutos} min, ${formatarMoeda(servico.preco)}` : ""}
                   </Suave>
+                  {a.recorrente && a.frequencia && (
+                    <Suave>Horário fixo: {ROTULOS_FREQUENCIA[a.frequencia]}</Suave>
+                  )}
                 </Info>
                 <Acoes>
                   <Selo status={a.status} />
@@ -174,6 +223,11 @@ export default function AgendaPage() {
                       <Botao $variante="neutro" $pequeno onClick={() => atualizarStatus(a.id, "cancelado")}>
                         Cancelar
                       </Botao>
+                      {a.serieId && (
+                        <Botao $variante="neutro" $pequeno onClick={() => cancelarAPartirDe(a.id)}>
+                          Cancelar daqui em diante
+                        </Botao>
+                      )}
                     </>
                   )}
                   <Botao $variante="perigo" $pequeno onClick={() => removerAgendamento(a.id)}>Excluir</Botao>

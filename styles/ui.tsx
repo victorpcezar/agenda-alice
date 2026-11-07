@@ -205,3 +205,19 @@ const StyledSelo = styled.span<{ $status: StatusAgendamento }>`
 export function Selo({ status }: { status: StatusAgendamento }) {
   return <StyledSelo $status={status}>{ROTULOS_STATUS[status]}</StyledSelo>;
 }
+
+export const CampoCheck = styled.label`
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-weight: 600;
+  cursor: pointer;
+
+  input {
+    width: 20px;
+    height: 20px;
+    accent-color: ${({ theme }) => theme.cores.destaque};
+  }
+`;

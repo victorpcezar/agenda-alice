@@ -28,4 +28,11 @@ Cores e raios ficam em `styles/theme.ts`.
     lib/                       formatação, validação (guards) e utilitários
     styles/                    tema, estilos globais e componentes de UI
     app/                       páginas: / (agenda), /clientes, /servicos
-# agenda-alice
+
+## Horários fixos (recorrência)
+
+Ao marcar "Horário fixo (repetir)", o app cria uma série de agendamentos independentes
+(semanal, quinzenal ou mensal, de 4 a 24 atendimentos). Cada um pode ser concluído ou
+cancelado sozinho; "Cancelar daqui em diante" cancela o atual e os próximos pendentes da série.
+Datas que conflitam com outro agendamento pendente são puladas e listadas no aviso.
+Mensal mantém o dia do mês (31/01 vira 28/02 em fevereiro). A lógica de datas está em `lib/recorrencia.ts`.
